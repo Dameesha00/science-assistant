@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Science Assistant</title>
+  <style>
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0f8ff; margin: 0; padding: 10px; overflow: hidden; }
+    .chat-container { max-width: 450px; margin: 0 auto; background: #ffffff; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); overflow: hidden; display: flex; flex-direction: column; height: 90vh; position: relative; }
+    .chat-header { background: #4A90E2; color: white; padding: 15px; text-align: center; font-weight: bold; font-size: 1.1em; border-bottom: 3px solid #357ABD; }
+    .chat-messages { flex: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+    .message { max-width: 80%; padding: 10px 14px; border-radius: 15px; font-size: 0.95em; line-height: 1.4; white-space: pre-wrap; }
+    .user-msg { background: #E3F2FD; color: #0D47A1; align-self: flex-end; border-bottom-right-radius: 2px; }
+    .ai-msg { background: #F1F8E9; color: #1B5E20; align-self: flex-start; border-bottom-left-radius: 2px; }
+    .input-area { display: flex; padding: 10px; background: #fafafa; border-top: 1px solid #eee; }
+    input { flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 20px; outline: none; font-size: 0.95em; }
+    button { background: #FF9800; color: white; border: none; padding: 10px 15px; margin-left: 5px; border-radius: 50%; cursor: pointer; font-weight: bold; }
+    button:hover { background: #F57C00; }
+
+    /* Pure JS Confetti Animation Styles */
+    .confetti-particle {
+      position: absolute;
+      top: -20px;
+      font-size: 20px;
+      user-select: none;
+      pointer-events: none;
+      z-index: 999;
+      animation: fall 3s linear forwards;
+    }
+    @keyframes fall {
+      to {
+        transform: translateY(100vh) rotate(360deg);
+        opacity: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div class="chat-container" id="chatContainer">
+  <div class="chat-header">🧪 Science Assistant 🔬</div>
+  <div class="chat-messages" id="chatBox">
+    <div class="message ai-msg">Hello! 🌟 Ask me any science question!</div>
+  </div>
+  <div class="input-area">
+    <input type="text" id="userInput" placeholder="Ask a science question..." onkeydown="if(event.key==='Enter') sendMessage()">
+    <button onclick="sendMessage()">➔</button>
+  </div>
+</div>
+
+<script>
+  // n8n Webhook URL
+  const N8N_WEBHOOK_URL = 'http://localhost:5678/webhook-test/ks2-chat';
+
+  async function sendMessage() {
+    const inputField = document.getElementById('userInput');
+    const text = inputField.value.trim();
+
+    if (!text) return;
+
+    appendMessage(text, 'user-msg');
+    inputField.value = '';
+
+    try {
+      const response = await fetch(N8N_WEBHOOK_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ data: text, student_id: "STU_1001" })
+      });
+
+      const data = await response.json();
+      let aiReply = data.output || "Sorry, I couldn't process that.";
+
+      const lowerReply = aiReply.toLowerCase();
+      
+      // Trigger confetti for any positive completion phrase
+      if (
+        aiReply.includes("[TRIGGER_CELEBRATION]") || 
+        lowerReply.includes("wonderful effort") ||
+        lowerReply.includes("good job") ||
+        lowerReply.includes("nailed it") ||
+        lowerReply.includes("awesome") ||
+        lowerReply.includes("fun fact")
+      ) {
+        aiReply = aiReply.replace("[TRIGGER_CELEBRATION]", "");
+        triggerEmojiConfetti();
+      }
+
+      appendMessage(aiReply, 'ai-msg');
+    } catch (error) {
+      appendMessage("Oops! Something went wrong. 😅", 'ai-msg');
+    }
+  }
+
+  function appendMessage(msg, className) {
+    const chatBox = document.getElementById('chatBox');
+    const div = document.createElement('div');
+    div.className = `message ${className}`;
+    div.innerText = msg;
+    chatBox.appendChild(div);
+    chatBox.scrollTop = chatBox.scrollHeight;
+  }
+
+  // Pure JavaScript Emoji Confetti Function
+  function triggerEmojiConfetti() {
+    const container = document.getElementById('chatContainer');
+    const emojis = ['🎉', '✨', '🌟', '👏', '🥳', '🎈', '🌿', '🧪'];
+    
+    for (let i = 0; i < 30; i++) {
+      const confetti = document.createElement('div');
+      confetti.className = 'confetti-particle';
+      confetti.innerText = emojis[Math.floor(Math.random() * emojis.length)];
+      confetti.style.left = Math.random() * 100 + '%';
+      confetti.style.animationDuration = (Math.random() * 2 + 1.5) + 's';
+      confetti.style.fontSize = (Math.random() * 15 + 15) + 'px';
+      
+      container.appendChild(confetti);
+
+      setTimeout(() => {
+        confetti.remove();
+      }, 3500);
+    }
+  }
+</script>
+
+</body>
+</html>
